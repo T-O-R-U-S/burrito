@@ -47,6 +47,17 @@ The examples present in the documentation should have correct ordering.
 
 Rust's `BTreeMap` collection maintains this ordering for you -- `BTreeMap` also does not need `std`, unlike `HashMap`.
 
+Why does the ordering matter? Because then same document can be hashed/signed, and then compared to other documents to 
+determine if they are the same. If the ordering is incorrect, then when you compare signatures/hashes, they will be
+different, and you'd end up rejecting a correct document!
+
+## Standard implementations
+<hr />
+
+You can read about the standard implementations of the Burrito DB in this directory.
+
+The other Markdown files here are for the specifications of the individual providers.
+
 ## Standard fields
 <hr /> 
 
