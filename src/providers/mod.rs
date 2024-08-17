@@ -6,3 +6,4 @@
 pub mod plaintext;
 pub mod burrito_box;
 pub mod recursive;
+pub mod burrito_box_sym;

@@ -35,6 +35,10 @@ BSON has some built-in markers for encrypted and sensitive data, which is a nice
 You can use `serde` to export to any format you want, but I decided upon BSON because it's a binary format that is
 purpose-made for this.
 
+## Documentation
+
+Read more [here](burrito_docs).
+
 ## Guaranteed fields:
 
 "Guaranteed" fields are guaranteed to be present in every entry, and they are intended to be used by applications

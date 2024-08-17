@@ -4,23 +4,51 @@
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
 use crate::database::{AppendMetadata, Entry, Provider};
+use crate::encryption::EncryptionProvider;
 use bson::doc;
 use bson::spec::BinarySubtype;
+use dryoc::dryocbox::protected::{PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use dryoc::dryocbox::protected::{PublicKey, SecretKey};
-use crate::encryption::EncryptionProvider;
 
 #[derive(Serialize, Deserialize)]
 pub struct BurritoBox {
-    encrypted_burrito_box: bson::Binary,
+    encrypted: bson::Binary,
+    mac: bson::Binary,
+    ephemeral_public_key: bson::Binary,
     #[serde(flatten)]
     additional_fields: BTreeMap<String, bson::Bson>,
 }
 
 impl BurritoBox {
-    pub fn from_encrypted(encrypted_burrito_box: impl Into<bson::Binary>) -> Self {
-        Self { encrypted_burrito_box: encrypted_burrito_box.into(), additional_fields: BTreeMap::new() }.with_meta::<Self>()
+    pub fn from_encrypted(encrypted: dryoc::dryocbox::VecBox) -> Self {
+        let (mac, encrypted, Some(key)) = encrypted.into_parts() else {
+            // we always expect an ephemeral public key to be encoded.
+            panic!("encrypted box is non-standard");
+        };
+
+        let encrypted = bson::Binary {
+            subtype: BinarySubtype::Encrypted,
+            bytes: encrypted,
+        };
+
+        let mac = bson::Binary {
+            subtype: BinarySubtype::Sensitive,
+            bytes: mac.to_vec(),
+        };
+
+        let ephemeral_public_key = bson::Binary {
+            subtype: BinarySubtype::Sensitive,
+            bytes: key.to_vec(),
+        };
+
+        Self {
+            encrypted,
+            mac,
+            ephemeral_public_key,
+            additional_fields: BTreeMap::new(),
+        }
+            .with_meta::<Self>()
     }
 }
 
@@ -34,15 +62,13 @@ impl Provider for BurritoBox {
     }
 
     fn into_entry(self) -> Entry {
-        let entry = bson::ser::to_document(&self).unwrap();
-
-        entry.with_meta::<Self>()
+        bson::to_document(&self).unwrap().with_meta::<Self>()
     }
 
     fn from_entry(entry: Entry) -> anyhow::Result<Self> {
-        let entry = bson::de::from_document(entry)?;
+        let burrito_box = bson::from_document(entry)?;
 
-        Ok(entry)
+        Ok(burrito_box)
     }
 }
 
@@ -61,25 +87,31 @@ impl EncryptionProvider for BurritoBox {
         let entry_bytes = bson::to_vec(&entry)?;
         let secret_box = VecBox::seal(&entry_bytes, &key)?;
 
-        let encrypted = bson::Binary {
-            subtype: BinarySubtype::Encrypted,
-            bytes: secret_box.to_vec(),
-        };
-
-        Ok(Self::from_encrypted(encrypted))
+        Ok(Self::from_encrypted(secret_box))
     }
 
     fn decrypt(self, key: SecretKey) -> anyhow::Result<Entry> {
         use dryoc::dryocbox::VecBox;
         use dryoc::dryocbox::protected::SecretKey;
-        use dryoc::dryocbox::protected::PublicKey;
+        use dryoc::dryocbox::PublicKey;
+        use dryoc::dryocbox::Mac;
         use dryoc::keypair::KeyPair;
 
         let keypair: KeyPair<PublicKey, SecretKey> = KeyPair::from_secret_key(key);
 
-        let encrypted = VecBox::from_sealed_bytes(&self.encrypted_burrito_box.bytes)?;
+        let mac = self.mac.bytes;
+        let mac = Mac::try_from(mac.as_slice())?;
+
+        let encrypted = self.encrypted.bytes;
+
+        let ephemeral_public_key = self.ephemeral_public_key.bytes;
+        let ephemeral_public_key = PublicKey::try_from(ephemeral_public_key.as_slice())?;
+
+        let encrypted = VecBox::from_parts(mac, encrypted, Some(ephemeral_public_key));
+
         let unencrypted = encrypted.unseal_to_vec(&keypair)?;
         let unencrypted = bson::from_slice(&unencrypted)?;
+
 
         Ok(unencrypted)
     }

@@ -5,6 +5,7 @@
  */
 extern crate core;
 
+
 pub mod database;
 pub mod providers;
 pub mod signing;
@@ -13,13 +14,14 @@ pub mod encryption;
 #[cfg(test)]
 mod tests {
     use crate::database::{AppendMetadata, Provider};
-    use crate::encryption::EncryptionProvider;
+    use crate::encryption::{EncryptionProvider, EncryptionProviderSymmetric};
     use crate::providers::burrito_box::BurritoBox;
     use crate::providers::plaintext::Plaintext;
     use crate::signing::Signing;
     use bson::Bson;
     use dryoc::dryocbox::protected::SecretKey;
     use dryoc::types::NewBytes;
+    use crate::providers::burrito_box_sym::BurritoBoxSym;
 
     fn blank_key() -> SecretKey {
         SecretKey::new_bytes()
@@ -38,7 +40,7 @@ mod tests {
         let secret_key = blank_key();
         let mut verify = encrypted.verify_sym(secret_key).expect("Failed to verify signature");
 
-        let x = verify.get_mut("encrypted_burrito_box").expect("Failed to get signature");
+        let x = verify.get_mut("encrypted").expect("Failed to get data");
         let Bson::Binary(b) = x else { panic!("Failed to get binary") };
         b.bytes.swap_remove(12); // ..oopsie! Our signature is invalid now!
 
@@ -60,10 +62,18 @@ mod tests {
         let plaintext = Plaintext::new("Hello World!").into_entry().sign_sym(public_key.clone());
         let encrypted = BurritoBox::encrypt(plaintext, public_key.clone()).expect("Failed to encrypt");
 
-        println!("{}", bson::to_bson(&encrypted).unwrap());
+        println!("{:#}", bson::to_bson(&encrypted).unwrap());
 
         let decrypted = encrypted.decrypt(secret_key.clone()).expect("Failed to decrypt");
-        println!("{}", bson::to_bson(&decrypted).unwrap());
+        println!("{:#}", bson::to_bson(&decrypted).unwrap());
+    }
+
+    #[test]
+    fn encrypt_decrypt_sym_test() {
+        let plaintext = Plaintext::new("Hello World!");
+        let secret_box = BurritoBoxSym::encrypt_sym(plaintext.into_entry(), blank_key()).expect("Failed to encrypt");
+
+        println!("{:#}", bson::to_bson(&secret_box).unwrap());
     }
 
     #[test]

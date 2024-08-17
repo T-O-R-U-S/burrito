@@ -92,8 +92,17 @@ pub trait Signing: AppendMetadata + Serialize {
         self.append_meta(("assumed_secure", signature))
     }
 
-    fn is_secure(&self, public_key: PublicKey) -> bool {
-        todo!()
+    fn is_secure(&self, key: PublicKey) -> bool {
+        use dryoc::sign::SignedMessage;
+
+        let Ok(mut self_entries) = bson::to_document(&self) else { return false };
+        let Some(Bson::Binary(signature)) = self_entries.remove("assumed_secure") else { return false };
+        let signature = signature.bytes;
+        let Ok(self_signed) = bson::to_vec(&self_entries) else { return false };
+        let self_signed = SignedMessage::from_parts(signature, self_signed);
+        let Ok(()) = self_signed.verify(&key) else { return false };
+
+        true
     }
 }
 
