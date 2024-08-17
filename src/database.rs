@@ -3,49 +3,40 @@
  *
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
-use bson::Bson;
-use orion::kdf::SecretKey;
+use serde::Serialize;
 
 pub type Entry = bson::Document;
 
+// Sort entry keys lexicographically
+pub fn to_sorted(entry: Entry) -> Entry {
+    let mut entries: Vec<(String, bson::Bson)> = entry.into_iter().collect();
+    entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+    let doc: Entry = entries.into_iter().collect();
+    doc
+}
 
 pub trait Provider: Sized {
     fn name() -> String;
     fn version() -> String;
-    fn assumed_secure() -> bool;
     fn into_entry(self) -> Entry;
     fn from_entry(entry: Entry) -> anyhow::Result<Self>;
 }
 
-pub trait EncryptionProvider: Provider {
-    fn encrypt(entry: Entry, key: SecretKey) -> anyhow::Result<Self>;
-    fn decrypt(self, data: SecretKey) -> anyhow::Result<Entry>;
-}
 
 pub trait AppendMetadata: Sized {
-    fn with_meta<T: Provider>(self) -> Self;
-}
+    fn append_meta(self, metadata: (&str, impl Serialize)) -> Self;
 
-impl AppendMetadata for Bson {
-    fn with_meta<T: Provider>(mut self) -> Self {
-        let Some(doc) = self.as_document_mut() else {
-            panic!("Entry is not a document!");
-        };
-
-        doc.insert("provider", T::name());
-        doc.insert("version", T::version());
-        doc.insert("assumed_secure", T::assumed_secure());
-
-        self
+    fn with_meta<T: Provider>(self) -> Self {
+        self.append_meta(("provider", T::name()))
+            .append_meta(("version", T::version()))
     }
 }
 
-impl AppendMetadata for bson::Document {
-    fn with_meta<T: Provider>(mut self) -> Self {
-        self.insert("provider", T::name());
-        self.insert("version", T::version());
-        self.insert("assumed_secure", T::assumed_secure());
-
+impl AppendMetadata for Entry {
+    fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
+        let (key, value) = metadata;
+        let value = bson::to_bson(&value).expect("Failed to serialize metadata");
+        self.insert(key, value);
         self
     }
 }

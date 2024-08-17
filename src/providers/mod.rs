@@ -5,3 +5,4 @@
  */
 pub mod plaintext;
 pub mod burrito_box;
+pub mod recursive;
