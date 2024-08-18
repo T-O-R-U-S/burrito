@@ -8,6 +8,8 @@ You should use the asymmetric box when you need to:
 - Authenticate documents
 - Avoid exposing secrets to the public
 
+> ###### ...you know, this burrito metaphor just keeps getting better and better. I mean, XSalsa!? Salsa?! That like... goes with burritos don't it!?
+
 ## Asymmetric Box Format
 
 ```json5

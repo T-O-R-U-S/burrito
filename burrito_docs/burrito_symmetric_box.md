@@ -3,6 +3,8 @@
 The burrito symmetric box is based on libsodium’s secret-key authenticated encryption, also known as a *secret*box. This
 implementation uses the XSalsa20 stream cipher, and Poly1305 for message authentication.
 
+> ###### ...you know, this burrito metaphor just keeps getting better and better. I mean, XSalsa!? Salsa?! That like... goes with burritos don't it!?
+
 ## Burrito Symmetric Box Format
 
 ```json5
