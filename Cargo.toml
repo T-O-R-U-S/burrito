@@ -1,6 +1,6 @@
 [package]
-name = "burrito-ss"
-version = "0.1.0"
+name = "burrito-secrets"
+version = "0.0.0-a0"
 edition = "2021"
 license = "MIT"
 
