@@ -3,6 +3,12 @@ name = "burrito-secrets"
 version = "0.0.0-a0"
 edition = "2021"
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/T-O-R-U-S/burrito"
+description = "A library for storing secrets in BSON format."
+authors = ["Mahmoud Moursy <mahmoud_moursy@icloud.com>"]
+keywords = ["bson", "cryptography", "encryption", "secret", "storage"]
+categories = ["cryptography", "encoding", "authentication"]
 
 [dependencies]
 # Cryptography
