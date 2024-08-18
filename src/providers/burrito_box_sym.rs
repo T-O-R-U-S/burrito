@@ -3,15 +3,18 @@
  *
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
-use std::collections::BTreeMap;
+use crate::database::{Entry, Metadata};
+use crate::encryption::EncryptionProviderSymmetric;
 use bson::spec::BinarySubtype;
 use dryoc::dryocbox::protected::{PublicKey, SecretKey};
 use dryoc::types::NewByteArray;
 use serde::{Deserialize, Serialize};
-use crate::database::{AppendMetadata, Entry, Provider};
-use crate::encryption::EncryptionProviderSymmetric;
+use std::collections::BTreeMap;
+use crate::providers::Provider;
+use crate::signing::Signing;
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct BurritoBoxSym {
     pub encrypted: bson::Binary,
     pub mac: bson::Binary,
@@ -30,21 +33,29 @@ impl Provider for BurritoBoxSym {
     }
 
     fn into_entry(self) -> Entry {
-        bson::to_document(&self).unwrap().with_meta::<Self>()
+        bson::to_document(&self)
+            .unwrap()
+            .with_meta::<Self>()
     }
 
     fn from_entry(entry: Entry) -> anyhow::Result<Self> {
+        Self::verify_version(&entry)?;
+
         let burrito = bson::from_document(entry)?;
 
         Ok(burrito)
     }
 }
 
-impl AppendMetadata for BurritoBoxSym {
+impl Metadata for BurritoBoxSym {
     fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
         self.additional_fields.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
 
         self
+    }
+
+    fn get_meta(&self, key: &str) -> Option<&bson::Bson> {
+        self.additional_fields.get(key)
     }
 }
 
@@ -73,12 +84,16 @@ impl EncryptionProviderSymmetric for BurritoBoxSym {
             bytes: nonce.to_vec(),
         };
 
-        Ok(Self {
-            encrypted,
-            mac,
-            nonce,
-            additional_fields: BTreeMap::new(),
-        }.with_meta::<Self>())
+        Ok(
+            Self {
+                encrypted,
+                mac,
+                nonce,
+                additional_fields: BTreeMap::new(),
+            }
+                .with_meta::<Self>()
+                .sign_sym(key)
+        )
     }
 
     fn decrypt_sym(self, key: PublicKey) -> anyhow::Result<Entry> {

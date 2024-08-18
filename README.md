@@ -1,6 +1,6 @@
 # Burrito -- Secrets n' Sauce
 
-A simple, monadic, encryption-agnostic database for secrets.
+A simple, monadic, encryption-agnostic schema for secrets.
 
 ## Why?
 
@@ -11,7 +11,7 @@ surpass KDBX4.
 
 ## How?
 
-The burrito database uses BSON under-the-hood.
+The burrito schema uses BSON.
 
 This is convenient because it's a binary format, and it's easy to parse. This makes it easier to store
 encrypted data compared to YAML/TOML/JSON, which are all text-based formats.

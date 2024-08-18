@@ -3,28 +3,16 @@
  *
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
+use std::collections::BTreeMap;
 use serde::Serialize;
+use crate::providers::Provider;
 
 pub type Entry = bson::Document;
 
-// Sort entry keys lexicographically
-pub fn to_sorted(entry: Entry) -> Entry {
-    let mut entries: Vec<(String, bson::Bson)> = entry.into_iter().collect();
-    entries.sort_by(|(a, _), (b, _)| a.cmp(b));
-    let doc: Entry = entries.into_iter().collect();
-    doc
-}
-
-pub trait Provider: Sized {
-    fn name() -> String;
-    fn version() -> String;
-    fn into_entry(self) -> Entry;
-    fn from_entry(entry: Entry) -> anyhow::Result<Self>;
-}
-
-
-pub trait AppendMetadata: Sized {
+pub trait Metadata: Sized {
     fn append_meta(self, metadata: (&str, impl Serialize)) -> Self;
+
+    fn get_meta(&self, key: &str) -> Option<&bson::Bson>;
 
     fn with_meta<T: Provider>(self) -> Self {
         self.append_meta(("provider", T::name()))
@@ -32,11 +20,26 @@ pub trait AppendMetadata: Sized {
     }
 }
 
-impl AppendMetadata for Entry {
+impl Metadata for Entry {
     fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
         let (key, value) = metadata;
         let value = bson::to_bson(&value).expect("Failed to serialize metadata");
         self.insert(key, value);
         self
+    }
+
+    fn get_meta(&self, key: &str) -> Option<&bson::Bson> {
+        self.get(key)
+    }
+}
+
+impl Metadata for BTreeMap<String, bson::Bson> {
+    fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
+        self.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
+        self
+    }
+
+    fn get_meta(&self, key: &str) -> Option<&bson::Bson> {
+        self.get(key)
     }
 }

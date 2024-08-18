@@ -3,19 +3,21 @@
  *
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
-use crate::database::{AppendMetadata, Entry, Provider};
+use crate::database::{Entry, Metadata};
 use crate::encryption::EncryptionProvider;
 use bson::doc;
 use bson::spec::BinarySubtype;
 use dryoc::dryocbox::protected::{PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use crate::providers::Provider;
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct BurritoBox {
     encrypted: bson::Binary,
-    mac: bson::Binary,
     ephemeral_public_key: bson::Binary,
+    mac: bson::Binary,
     #[serde(flatten)]
     additional_fields: BTreeMap<String, bson::Bson>,
 }
@@ -66,17 +68,23 @@ impl Provider for BurritoBox {
     }
 
     fn from_entry(entry: Entry) -> anyhow::Result<Self> {
+        Self::verify_version(&entry)?;
+
         let burrito_box = bson::from_document(entry)?;
 
         Ok(burrito_box)
     }
 }
 
-impl AppendMetadata for BurritoBox {
+impl Metadata for BurritoBox {
     fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
         self.additional_fields.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
 
         self
+    }
+
+    fn get_meta(&self, key: &str) -> Option<&bson::Bson> {
+        self.additional_fields.get(key)
     }
 }
 

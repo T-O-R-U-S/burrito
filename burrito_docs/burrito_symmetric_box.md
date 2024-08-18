@@ -7,9 +7,9 @@ implementation uses the XSalsa20 stream cipher, and Poly1305 for message authent
 
 ```json5
 {
-  "encrypted": 0x42, // ...binary data...
-  "mac": 0x42, // ...binary data...
-  "nonce": 0x42, // ...binary data...
+  "ENCRYPTED": 0x42, // ...binary data...
+  "MAC": 0x42, // ...binary data...
+  "NONCE": 0x42, // ...binary data...
   // standard fields:
   "provider": "burrito_symmetric_box",
   "version": "0.0.0",
@@ -18,6 +18,6 @@ implementation uses the XSalsa20 stream cipher, and Poly1305 for message authent
 
 ## Explanation
 
-- `encrypted` is the encrypted data (doy).
+- `encrypted` is the encrypted data (d'oh...).
 - `mac` is the message authentication code (MAC).
 - `nonce` is the nonce used to encrypt the data. Change this every time you decrypt and encrypt the data.

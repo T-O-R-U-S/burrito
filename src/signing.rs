@@ -3,7 +3,7 @@
  *
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
-use crate::database::AppendMetadata;
+use crate::database::Metadata;
 use anyhow::bail;
 use bson::spec::BinarySubtype;
 use bson::Bson;
@@ -12,7 +12,7 @@ use dryoc::sign::protected::{PublicKey, SecretKey};
 use dryoc::auth::protected::Key;
 use serde::Serialize;
 
-pub trait Signing: AppendMetadata + Serialize {
+pub trait Signing: Metadata + Serialize {
     /// symmetrical signature
     fn sign_sym(self, secret_key: Key) -> Self
     {
@@ -60,21 +60,37 @@ pub trait Signing: AppendMetadata + Serialize {
             bytes: signature.to_vec(),
         };
 
-        self.append_meta(("signature", signature))
+        let public_key = bson::Binary {
+            subtype: BinarySubtype::Sensitive,
+            bytes: keypair.public_key.to_vec(),
+        };
+
+        self
+            .append_meta(("signing_public_key", public_key))
+            .append_meta(("signature", signature))
     }
 
-    fn verify(self, key: PublicKey) -> anyhow::Result<Self> {
+    fn verify(self) -> anyhow::Result<Self> {
         use dryoc::sign::SignedMessage;
 
         let mut self_entries = bson::to_document(&self)?;
+        let Some(Bson::Binary(public_key)) = self_entries.remove("signing_public_key") else { bail!("Entry does not contain valid signature") };
+        let public_key = public_key.bytes;
+        let public_key = PublicKey::try_from(public_key.as_slice())?;
+
         let Some(Bson::Binary(signature)) = self_entries.remove("signature") else { bail!("Entry does not contain valid signature") };
         let signature = signature.bytes;
+
+
         let self_signed = bson::to_vec(&self_entries)?;
         let self_signed = SignedMessage::from_parts(signature, self_signed);
-        self_signed.verify(&key)?;
+
+        self_signed.verify(&public_key)?;
 
         Ok(self)
     }
+
+    const SECURITY_PADDING: &'static [u8] = b"This is some extra data to ensure that the signature is different, instead of being simply copy-pastable if the owner of the document did not also sign the document BEFORE adding a security attestation.";
 
     fn with_security(self, key: SecretKey) -> Self {
         use dryoc::sign::SigningKeyPair;
@@ -82,28 +98,43 @@ pub trait Signing: AppendMetadata + Serialize {
         use dryoc::sign::protected::SecretKey;
 
         let keypair: SigningKeyPair<PublicKey, SecretKey> = SigningKeyPair::from_secret_key(key);
-        let self_bytes = bson::to_vec(&self).expect("Failed to serialize entry");
+        let mut self_bytes = bson::to_vec(&self).expect("Failed to serialize entry");
+        self_bytes.extend_from_slice(Self::SECURITY_PADDING);
         let (signature, _data): (HeapByteArray<64>, _) = keypair.sign(self_bytes).expect("Failed to sign entry").into_parts();
         let signature = bson::Binary {
             subtype: BinarySubtype::Sensitive,
             bytes: signature.to_vec(),
         };
 
-        self.append_meta(("assumed_secure", signature))
+        let public_key = bson::Binary {
+            subtype: BinarySubtype::Sensitive,
+            bytes: keypair.public_key.to_vec(),
+        };
+
+        self
+            .append_meta(("assumed_secure", signature))
+            .append_meta(("security_signing_public_key", public_key))
     }
 
-    fn is_secure(&self, key: PublicKey) -> bool {
+    fn is_secure(&self) -> bool {
         use dryoc::sign::SignedMessage;
 
         let Ok(mut self_entries) = bson::to_document(&self) else { return false };
+        let Some(Bson::Binary(public_key)) = self_entries.remove("security_signing_public_key") else { return false };
+        let public_key = public_key.bytes;
+        let Ok(public_key) = PublicKey::try_from(public_key.as_slice()) else { return false };
+
         let Some(Bson::Binary(signature)) = self_entries.remove("assumed_secure") else { return false };
         let signature = signature.bytes;
-        let Ok(self_signed) = bson::to_vec(&self_entries) else { return false };
-        let self_signed = SignedMessage::from_parts(signature, self_signed);
-        let Ok(()) = self_signed.verify(&key) else { return false };
+
+        let Ok(mut self_bytes) = bson::to_vec(&self_entries) else { return false };
+        self_bytes.extend_from_slice(Self::SECURITY_PADDING);
+        let self_signed = SignedMessage::from_parts(signature, self_bytes);
+
+        let Ok(()) = self_signed.verify(&public_key) else { return false };
 
         true
     }
 }
 
-impl<T: AppendMetadata + Serialize> Signing for T {}
+impl<T: Metadata + Serialize> Signing for T {}

@@ -3,19 +3,21 @@
  *
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
-use crate::database::{AppendMetadata, Entry, Provider};
+use crate::database::{Entry, Metadata};
 use bson::doc;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use crate::providers::Provider;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Plaintext {
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub struct SensitiveText {
     pub plaintext: String,
     #[serde(flatten)]
     pub additional_fields: BTreeMap<String, bson::Bson>,
 }
 
-impl Plaintext {
+impl SensitiveText {
     pub fn new(plaintext: &str) -> Self {
         Self {
             plaintext: plaintext.to_string(),
@@ -24,9 +26,9 @@ impl Plaintext {
     }
 }
 
-impl Provider for Plaintext {
+impl Provider for SensitiveText {
     fn name() -> String {
-        "plaintext".to_string()
+        "sensitive_text".to_string()
     }
 
     fn version() -> String {
@@ -39,15 +41,21 @@ impl Provider for Plaintext {
     }
 
     fn from_entry(entry: Entry) -> anyhow::Result<Self> {
-        let entry: Plaintext = bson::de::from_document(entry)?;
+        Self::verify_version(&entry)?;
+
+        let entry: SensitiveText = bson::de::from_document(entry)?;
 
         Ok(entry)
     }
 }
 
-impl AppendMetadata for Plaintext {
+impl Metadata for SensitiveText {
     fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
         self.additional_fields.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
         self
+    }
+
+    fn get_meta(&self, key: &str) -> Option<&bson::Bson> {
+        self.additional_fields.get(key)
     }
 }

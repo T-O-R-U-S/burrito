@@ -3,11 +3,13 @@
  *
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
-use crate::database::{AppendMetadata, Entry, Provider};
+use crate::database::{Entry, Metadata};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use crate::providers::Provider;
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct Recursive {
     pub children: Vec<Entry>,
     #[serde(flatten)]
@@ -36,8 +38,21 @@ impl Provider for Recursive {
     }
 
     fn from_entry(entry: Entry) -> anyhow::Result<Self> {
+        Self::verify_version(&entry)?;
+
         let entry = bson::from_document(entry)?;
 
         Ok(entry)
+    }
+}
+
+impl Metadata for Recursive {
+    fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
+        self.additional_fields.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
+        self
+    }
+
+    fn get_meta(&self, key: &str) -> Option<&bson::Bson> {
+        self.additional_fields.get(key)
     }
 }
