@@ -64,7 +64,7 @@ mod tests {
 
         let plaintext = plaintext.sign(keypair.secret_key.clone());
 
-        assert!(plaintext.verify().is_ok());
+        plaintext.verify().expect("Signature must be correct.");
     }
 
     #[test]

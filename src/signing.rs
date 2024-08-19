@@ -7,9 +7,9 @@ use crate::database::Metadata;
 use anyhow::bail;
 use bson::spec::BinarySubtype;
 use bson::Bson;
+use dryoc::auth::protected::Key;
 use dryoc::protected::HeapByteArray;
 use dryoc::sign::protected::{PublicKey, SecretKey};
-use dryoc::auth::protected::Key;
 use serde::Serialize;
 
 pub trait Signing: Metadata + Serialize {
@@ -53,30 +53,40 @@ pub trait Signing: Metadata + Serialize {
         use dryoc::sign::protected::SecretKey;
 
         let keypair: SigningKeyPair<PublicKey, SecretKey> = SigningKeyPair::from_secret_key(key);
-        let self_bytes = bson::to_vec(&self).expect("Failed to serialize entry");
+        let public_key = bson::Binary {
+            subtype: BinarySubtype::Sensitive,
+            bytes: keypair.public_key.to_vec(),
+        };
+
+        let out = self
+            .append_meta(("signing_public_key", public_key));
+
+        let self_bytes = bson::to_vec(&out).expect("Failed to serialize entry");
         let (signature, _data): (HeapByteArray<64>, _) = keypair.sign(self_bytes).expect("Failed to sign entry").into_parts();
         let signature = bson::Binary {
             subtype: BinarySubtype::Sensitive,
             bytes: signature.to_vec(),
         };
 
-        let public_key = bson::Binary {
-            subtype: BinarySubtype::Sensitive,
-            bytes: keypair.public_key.to_vec(),
-        };
 
-        self
-            .append_meta(("signing_public_key", public_key))
+        out
             .append_meta(("signature", signature))
     }
 
     fn verify(self) -> anyhow::Result<Self> {
+        let self_entries = bson::to_document(&self)?;
+
+        let Some(Bson::Binary(public_key)) = self_entries.get_meta("signing_public_key") else { bail!("Entry does not contain valid signature") };
+        let public_key = &public_key.bytes;
+        let public_key = PublicKey::try_from(public_key.as_slice())?;
+
+        self.verify_with(public_key)
+    }
+
+    fn verify_with(self, public_key: PublicKey) -> anyhow::Result<Self> {
         use dryoc::sign::SignedMessage;
 
         let mut self_entries = bson::to_document(&self)?;
-        let Some(Bson::Binary(public_key)) = self_entries.remove("signing_public_key") else { bail!("Entry does not contain valid signature") };
-        let public_key = public_key.bytes;
-        let public_key = PublicKey::try_from(public_key.as_slice())?;
 
         let Some(Bson::Binary(signature)) = self_entries.remove("signature") else { bail!("Entry does not contain valid signature") };
         let signature = signature.bytes;
@@ -98,7 +108,15 @@ pub trait Signing: Metadata + Serialize {
         use dryoc::sign::protected::SecretKey;
 
         let keypair: SigningKeyPair<PublicKey, SecretKey> = SigningKeyPair::from_secret_key(key);
-        let mut self_bytes = bson::to_vec(&self).expect("Failed to serialize entry");
+        let public_key = bson::Binary {
+            subtype: BinarySubtype::Sensitive,
+            bytes: keypair.public_key.to_vec(),
+        };
+
+        let out = self
+            .append_meta(("security_signing_public_key", public_key));
+
+        let mut self_bytes = bson::to_vec(&out).expect("Failed to serialize entry");
         self_bytes.extend_from_slice(Self::SECURITY_PADDING);
         let (signature, _data): (HeapByteArray<64>, _) = keypair.sign(self_bytes).expect("Failed to sign entry").into_parts();
         let signature = bson::Binary {
@@ -106,24 +124,24 @@ pub trait Signing: Metadata + Serialize {
             bytes: signature.to_vec(),
         };
 
-        let public_key = bson::Binary {
-            subtype: BinarySubtype::Sensitive,
-            bytes: keypair.public_key.to_vec(),
-        };
 
-        self
+        out
             .append_meta(("assumed_secure", signature))
-            .append_meta(("security_signing_public_key", public_key))
     }
 
     fn is_secure(&self) -> bool {
+        let Ok(self_entries) = bson::to_document(&self) else { return false };
+        let Some(Bson::Binary(public_key)) = self_entries.get("security_signing_public_key") else { return false };
+        let public_key = &public_key.bytes;
+        let Ok(public_key) = PublicKey::try_from(public_key.as_slice()) else { return false };
+
+        self.is_secure_with(public_key)
+    }
+
+    fn is_secure_with(&self, public_key: PublicKey) -> bool {
         use dryoc::sign::SignedMessage;
 
         let Ok(mut self_entries) = bson::to_document(&self) else { return false };
-        let Some(Bson::Binary(public_key)) = self_entries.remove("security_signing_public_key") else { return false };
-        let public_key = public_key.bytes;
-        let Ok(public_key) = PublicKey::try_from(public_key.as_slice()) else { return false };
-
         let Some(Bson::Binary(signature)) = self_entries.remove("assumed_secure") else { return false };
         let signature = signature.bytes;
 
