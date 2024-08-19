@@ -34,7 +34,7 @@ impl Provider for Recursive {
     fn into_entry(self) -> Entry {
         let entry = bson::to_document(&self).unwrap();
 
-        entry.with_meta::<Self>()
+        entry.and_defaults::<Self>()
     }
 
     fn from_entry(entry: Entry) -> anyhow::Result<Self> {
@@ -47,9 +47,8 @@ impl Provider for Recursive {
 }
 
 impl Metadata for Recursive {
-    fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
+    fn write_meta(&mut self, metadata: (&str, impl Serialize)) {
         self.additional_fields.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
-        self
     }
 
     fn get_meta(&self, key: &str) -> Option<&bson::Bson> {

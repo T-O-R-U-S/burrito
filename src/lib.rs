@@ -57,14 +57,16 @@ mod tests {
         use dryoc::sign::protected::SecretKey;
 
         let keypair = SigningKeyPair::<PublicKey, SecretKey>::gen();
-        let plaintext = SensitiveText::new("Hello World!");
-        let plaintext = plaintext.with_security(keypair.secret_key.clone());
 
-        assert!(plaintext.is_secure());
+        let plaintext = SensitiveText::new("Hello World!");
 
         let plaintext = plaintext.sign(keypair.secret_key.clone());
 
-        plaintext.verify().expect("Signature must be correct.");
+        let plaintext = plaintext.verify().expect("Signature must be correct.");
+
+        let plaintext = plaintext.with_security(keypair.secret_key.clone());
+
+        assert!(plaintext.is_secure());
     }
 
     #[test]
@@ -120,10 +122,13 @@ mod tests {
 
     #[test]
     fn serialize_test() {
-        let plaintext = SensitiveText::new("Hello World!").with_meta::<SensitiveText>().sign_sym(blank_key());
+        let plaintext = SensitiveText::new("Hello World!").and_defaults::<SensitiveText>().sign_sym(blank_key());
+        println!("{:#}", bson::to_bson(&plaintext).unwrap());
         let verified = plaintext.verify_sym(blank_key()).expect("Failed to verify signature");
+        println!("{:#}", bson::to_bson(&verified).unwrap());
 
         let entry = verified.into_entry();
+        println!("{:#}", bson::to_bson(&entry).unwrap());
         let plaintext = SensitiveText::from_entry(entry).expect("Failed to verify signature");
         let _plaintext = plaintext.verify_sym(blank_key()).expect("Failed to verify signature");
     }

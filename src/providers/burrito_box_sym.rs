@@ -35,7 +35,7 @@ impl Provider for BurritoBoxSym {
     fn into_entry(self) -> Entry {
         bson::to_document(&self)
             .unwrap()
-            .with_meta::<Self>()
+            .and_defaults::<Self>()
     }
 
     fn from_entry(entry: Entry) -> anyhow::Result<Self> {
@@ -48,14 +48,12 @@ impl Provider for BurritoBoxSym {
 }
 
 impl Metadata for BurritoBoxSym {
-    fn append_meta(mut self, metadata: (&str, impl Serialize)) -> Self {
-        self.additional_fields.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
-
-        self
-    }
-
     fn get_meta(&self, key: &str) -> Option<&bson::Bson> {
         self.additional_fields.get(key)
+    }
+
+    fn write_meta(&mut self, metadata: (&str, impl Serialize)) {
+        self.additional_fields.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
     }
 }
 
@@ -91,7 +89,7 @@ impl EncryptionProviderSymmetric for BurritoBoxSym {
                 nonce,
                 additional_fields: BTreeMap::new(),
             }
-                .with_meta::<Self>()
+                .and_defaults::<Self>()
                 .sign_sym(key)
         )
     }

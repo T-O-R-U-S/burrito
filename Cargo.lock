@@ -83,7 +83,7 @@ checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
 name = "burrito-secrets"
-version = "0.0.0-a0"
+version = "0.0.0-a1"
 dependencies = [
  "anyhow",
  "bson",

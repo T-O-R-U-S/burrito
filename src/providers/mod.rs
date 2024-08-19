@@ -13,6 +13,9 @@ pub mod burrito_box_sym;
 pub trait Provider: Sized {
     fn name() -> String;
     fn version() -> String;
+    fn into_entry(self) -> Entry;
+    fn from_entry(entry: Entry) -> anyhow::Result<Self>;
+
     fn verify_version(cmp: &Entry) -> anyhow::Result<()> {
         use anyhow::bail;
 
@@ -24,6 +27,4 @@ pub trait Provider: Sized {
 
         Ok(())
     }
-    fn into_entry(self) -> Entry;
-    fn from_entry(entry: Entry) -> anyhow::Result<Self>;
 }

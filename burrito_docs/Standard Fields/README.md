@@ -23,4 +23,4 @@ Check out the other files in this directory for more information.
 
 Providers should use SCREAMING_SNAKE_CASE for their unique fields. Standard fields should use snake_case.
 
-`provider` is a standard field, and should not be in screaming snake case.
+The field itself `provider` is a standard field, and should not be in screaming snake case.

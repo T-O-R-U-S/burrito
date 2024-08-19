@@ -19,17 +19,19 @@ pub trait Signing: Metadata + Serialize {
         use dryoc::auth::Auth;
         use dryoc::constants::CRYPTO_AUTH_BYTES;
 
+        let out = self.with_meta(("modified", bson::DateTime::now()));
+
         // If the entries are not always in the same order, the signature will be different!!!!
         // I used a BTreeMap internally to make sure the entries are always in the same order
-        let self_bytes = bson::to_vec(&self).expect("Failed to serialize entry");
+        let self_bytes = bson::to_vec(&out).expect("Failed to serialize entry");
         let signature: [u8; CRYPTO_AUTH_BYTES] = Auth::compute(secret_key, &self_bytes);
         let signature = bson::Binary {
             subtype: BinarySubtype::Sensitive,
             bytes: Vec::from(signature),
         };
 
-        self
-            .append_meta(("signature_sym", signature))
+        out
+            .with_meta(("signature_sym", signature))
     }
 
     fn verify_sym(self, secret_key: Key) -> anyhow::Result<Self>
@@ -59,7 +61,8 @@ pub trait Signing: Metadata + Serialize {
         };
 
         let out = self
-            .append_meta(("signing_public_key", public_key));
+            .with_meta(("modified", bson::DateTime::now()))
+            .with_meta(("signing_public_key", public_key));
 
         let self_bytes = bson::to_vec(&out).expect("Failed to serialize entry");
         let (signature, _data): (HeapByteArray<64>, _) = keypair.sign(self_bytes).expect("Failed to sign entry").into_parts();
@@ -70,7 +73,7 @@ pub trait Signing: Metadata + Serialize {
 
 
         out
-            .append_meta(("signature", signature))
+            .with_meta(("signature", signature))
     }
 
     fn verify(self) -> anyhow::Result<Self> {
@@ -114,7 +117,8 @@ pub trait Signing: Metadata + Serialize {
         };
 
         let out = self
-            .append_meta(("security_signing_public_key", public_key));
+            .with_meta(("modified", bson::DateTime::now()))
+            .with_meta(("security_signing_public_key", public_key));
 
         let mut self_bytes = bson::to_vec(&out).expect("Failed to serialize entry");
         self_bytes.extend_from_slice(Self::SECURITY_PADDING);
@@ -126,7 +130,7 @@ pub trait Signing: Metadata + Serialize {
 
 
         out
-            .append_meta(("assumed_secure", signature))
+            .with_meta(("assumed_secure", signature))
     }
 
     fn is_secure(&self) -> bool {

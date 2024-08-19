@@ -42,7 +42,7 @@ The fields below are designed to prevent unauthorized modification of database e
 - If this field is present and signed with a trusted public key, then the entry is safe to write to disk, or transport 
   over the network.
 - Use different keys for `signature` and `assumed_secure`.
-- Before signing with assumed_secure, add the following bytes: `This is some extra data to ensure that the signature is different, instead of being simply copy-pastable if the owner of the document did not also sign the document BEFORE adding a security attestation.`
+- Before signing with assumed_secure, add the following bytes to the BSON-encoded data: `This is some extra data to ensure that the signature is different, instead of being simply copy-pastable if the owner of the document did not also sign the document BEFORE adding a security attestation.`
 - This is to prevent an attacker from simply renaming `signature` to `assumed_secure` and then using that to add a security attestation.
 
 4. `security_signing_public_key`: Public key to use with `assumed_secure`
