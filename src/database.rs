@@ -5,7 +5,7 @@
  */
 use std::collections::BTreeMap;
 use serde::Serialize;
-use crate::providers::Provider;
+use crate::waiters::Waiter;
 
 pub type Entry = bson::Document;
 
@@ -30,8 +30,8 @@ pub trait Metadata: Sized {
         self
     }
 
-    fn and_defaults<T: Provider>(self) -> Self {
-        self.with_meta(("provider", T::name()))
+    fn and_defaults<T: Waiter>(self) -> Self {
+        self.with_meta(("waiter", T::name()))
             .with_meta(("version", T::version()))
             .with_added(("created", bson::DateTime::now()))
     }

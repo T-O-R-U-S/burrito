@@ -10,13 +10,13 @@ This provider simply contains a list of child entries. A combo deal, if you will
     {
       "PLAINTEXT": "I'm a child entry",
       // ... standard fields:
-      "provider": "plaintext",
+      "waiter": "sensitive_text",
       "version": "0.0.0"
     }
   ],
   // ... standard fields:
-  "provider": "burrito_recursive",
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "waiter": "burrito_recursive",
 }
 ```
 
@@ -30,13 +30,13 @@ This provider simply contains a list of child entries. A combo deal, if you will
     {
       "PLAINTEXT": "I'm a child entry",
       // ... standard fields:
-      "provider": "plaintext",
-      "version": "0.0.0"
+      "version": "0.0.0",
+      "waiter": "sensitive_text",
     },
   ],
   // ... standard fields:
-  "provider": "burrito_recursive",
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "waiter": "recursive",
 }
 ```
 
@@ -50,13 +50,13 @@ You can wrap a `burrito_recursive` in a burrito_symmetric_box or burrito_asymmet
     {
       "PLAINTEXT": "I'm a child entry",
       // ... standard fields:
-      "provider": "plaintext",
-      "version": "0.0.0"
+      "version": "0.0.0",
+      "waiter": "plaintext",
     },
   ],
   // ... standard fields:
-  "provider": "burrito_recursive",
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "waiter": "burrito_recursive",
 }
 ```
 
@@ -68,8 +68,8 @@ Then we wrap it in a burrito_symmetric_box:
   "EPHEMERAL_PUBLIC_KEY": 0x42, // ...binary data...
   "MAC": 0x42, // ...binary data...
   // standard fields:
-  "provider": "burrito_asymmetric_box",
   "version": "0.0.0",
+  "waiter": "burrito_asymmetric_box",
 }
 ```
 

@@ -4,14 +4,14 @@
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
 use crate::database::{Entry, Metadata};
-use crate::encryption::EncryptionProviderSymmetric;
+use crate::encryption::EncryptionWaiterSymmetric;
+use crate::signing::Signing;
+use crate::waiters::Waiter;
 use bson::spec::BinarySubtype;
-use dryoc::dryocbox::protected::{PublicKey, SecretKey};
+use dryoc::dryocbox::protected::SecretKey;
 use dryoc::types::NewByteArray;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use crate::providers::Provider;
-use crate::signing::Signing;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -23,7 +23,7 @@ pub struct BurritoBoxSym {
     pub additional_fields: BTreeMap<String, bson::Bson>,
 }
 
-impl Provider for BurritoBoxSym {
+impl Waiter for BurritoBoxSym {
     fn name() -> String {
         "burrito_symmetric_box".to_string()
     }
@@ -57,7 +57,7 @@ impl Metadata for BurritoBoxSym {
     }
 }
 
-impl EncryptionProviderSymmetric for BurritoBoxSym {
+impl EncryptionWaiterSymmetric for BurritoBoxSym {
     fn encrypt_sym(entry: Entry, key: SecretKey) -> anyhow::Result<Self> {
         use dryoc::dryocsecretbox::VecBox;
         use dryoc::dryocsecretbox::Nonce;
@@ -94,7 +94,7 @@ impl EncryptionProviderSymmetric for BurritoBoxSym {
         )
     }
 
-    fn decrypt_sym(self, key: PublicKey) -> anyhow::Result<Entry> {
+    fn decrypt_sym(self, key: SecretKey) -> anyhow::Result<Entry> {
         use dryoc::dryocsecretbox::VecBox;
         use dryoc::dryocsecretbox::Mac;
 

@@ -13,7 +13,7 @@ implementation uses the XSalsa20 stream cipher, and Poly1305 for message authent
   "MAC": 0x42, // ...binary data...
   "NONCE": 0x42, // ...binary data... CHANGE THIS EVERY TIME YOU DECRYPT AND ENCRYPT THE DATA!
   // standard fields:
-  "provider": "burrito_symmetric_box",
+  "waiter": "burrito_symmetric_box",
   "version": "0.0.0",
 }
 ```

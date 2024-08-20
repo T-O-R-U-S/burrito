@@ -18,7 +18,7 @@ You should use the asymmetric box when you need to:
   "EPHEMERAL_PUBLIC_KEY": 0x42, // ...binary data... CHANGE THIS EVERY TIME YOU DECRYPT AND ENCRYPT THE DATA!
   "MAC": 0x42, // ...binary data...
   // standard fields:
-  "provider": "burrito_asymmetric_box",
   "version": "0.0.0",
+  "waiter": "burrito_asymmetric_box",
 }
 ```

@@ -5,14 +5,18 @@
  */
 use dryoc::dryocbox::protected::{PublicKey, SecretKey};
 use crate::database::Entry;
-use crate::providers::Provider;
+use crate::waiters::Waiter;
 
-pub trait EncryptionProvider: Provider {
+pub trait EncryptionWaiter: Waiter {
     fn encrypt(entry: Entry, key: PublicKey) -> anyhow::Result<Self>;
     fn decrypt(self, key: SecretKey) -> anyhow::Result<Entry>;
 }
 
-pub trait EncryptionProviderSymmetric: Provider {
+pub trait EncryptionWaiterSymmetric: Waiter {
     fn encrypt_sym(entry: Entry, key: SecretKey) -> anyhow::Result<Self>;
-    fn decrypt_sym(self, key: PublicKey) -> anyhow::Result<Entry>;
+    fn decrypt_sym(self, key: SecretKey) -> anyhow::Result<Entry>;
+}
+
+pub trait KeyFrom: Waiter {
+    fn key_from(&self, data: Vec<u8>) -> anyhow::Result<SecretKey>;
 }

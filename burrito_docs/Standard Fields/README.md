@@ -7,8 +7,8 @@ These are fields that are reserved for applications to use, and should not be us
 
 These are obligatory and must be present in every burrito entry.
 
-### `provider`
-The name of the provider.
+### `waiter`
+The name of the waiter.
 
 ### `version`
 Semver version of the provider.

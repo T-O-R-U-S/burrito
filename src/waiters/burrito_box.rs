@@ -4,13 +4,13 @@
  * Licensed under the MIT license <http://opensource.org/licenses/MIT>.
  */
 use crate::database::{Entry, Metadata};
-use crate::encryption::EncryptionProvider;
+use crate::encryption::EncryptionWaiter;
 use bson::doc;
 use bson::spec::BinarySubtype;
 use dryoc::dryocbox::protected::{PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use crate::providers::Provider;
+use crate::waiters::Waiter;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -54,7 +54,7 @@ impl BurritoBox {
     }
 }
 
-impl Provider for BurritoBox {
+impl Waiter for BurritoBox {
     fn name() -> String {
         "burrito_asymmetric_box".to_string()
     }
@@ -86,7 +86,7 @@ impl Metadata for BurritoBox {
     }
 }
 
-impl EncryptionProvider for BurritoBox {
+impl EncryptionWaiter for BurritoBox {
     fn encrypt(entry: Entry, key: PublicKey) -> anyhow::Result<Self> {
         use dryoc::dryocbox::VecBox;
 

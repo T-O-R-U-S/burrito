@@ -13,7 +13,7 @@ or writing them to disk, because there is a good chance that a `sensitive_text` 
 {
   "PLAINTEXT": "Hello World!",
   // standard fields:
-  "provider": "sensitive_text",
+  "waiter": "sensitive_text",
   "version": "0.0.0",
 }
 ```

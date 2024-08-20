@@ -7,18 +7,18 @@ extern crate core;
 
 
 pub mod database;
-pub mod providers;
+pub mod waiters;
 pub mod signing;
 pub mod encryption;
 
 #[cfg(test)]
 mod tests {
     use crate::database::Metadata;
-    use crate::encryption::{EncryptionProvider, EncryptionProviderSymmetric};
-    use crate::providers::burrito_box::BurritoBox;
-    use crate::providers::burrito_box_sym::BurritoBoxSym;
-    use crate::providers::sensitive_text::SensitiveText;
-    use crate::providers::Provider;
+    use crate::encryption::{EncryptionWaiter, EncryptionWaiterSymmetric};
+    use crate::waiters::burrito_box::BurritoBox;
+    use crate::waiters::burrito_box_sym::BurritoBoxSym;
+    use crate::waiters::sensitive_text::SensitiveText;
+    use crate::waiters::Waiter;
     use crate::signing::Signing;
     use bson::Bson;
     use dryoc::dryocbox::protected::SecretKey;
