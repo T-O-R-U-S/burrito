@@ -81,7 +81,7 @@ impl Metadata for BurritoBox {
         self.additional_fields.get(key)
     }
 
-    fn write_meta(&mut self, metadata: (&str, impl Serialize)) {
+    fn set_meta(&mut self, metadata: (&str, impl Serialize)) {
         self.additional_fields.insert(metadata.0.to_string(), bson::to_bson(&metadata.1).unwrap());
     }
 }

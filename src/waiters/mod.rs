@@ -9,7 +9,6 @@ pub mod sensitive_text;
 pub mod burrito_box;
 pub mod recursive;
 pub mod burrito_box_sym;
-pub mod burrito_box_password_sym;
 
 pub trait Waiter: Sized {
     fn name() -> String;

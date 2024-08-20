@@ -70,6 +70,14 @@ mod tests {
     }
 
     #[test]
+    fn password_sym_test() {
+        let plaintext = SensitiveText::new("Hello World!");
+        let encrypted = BurritoBoxSym::of_password(plaintext.into_entry(), "Hello World!".to_string());
+        let decrypted = encrypted.decrypt_password("Hello World!".to_string()).expect("Failed to decrypt");
+        println!("{:#}", bson::to_bson(&decrypted).unwrap());
+    }
+
+    #[test]
     fn encrypt_decrypt_test() {
         use dryoc::keypair::KeyPair;
         use dryoc::dryocbox::protected::SecretKey;
